@@ -6,7 +6,6 @@ app = Flask(__name__)
 @app.route('/chat', methods=['POST'])
 def chat():
     user_input = request.json.get('message')
-    # Call your chatbot logic here
     response = chatbot_main(user_input)
     return jsonify({'response': response})
 
