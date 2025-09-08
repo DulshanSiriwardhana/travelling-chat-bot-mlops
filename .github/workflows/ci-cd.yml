@@ -41,41 +41,23 @@ jobs:
           HOST: ${{ secrets.EC2_HOST }}
           USER: ${{ secrets.EC2_USER }}
           KEY: ${{ secrets.EC2_SSH_KEY }}
-          ENV_VARS: ${{ secrets.APP_ENV_VARS }}  # Optional: JSON or .env content
         run: |
-          # Save SSH key
           echo "$KEY" > key.pem
           chmod 600 key.pem
-
-          # Rsync project to EC2
           rsync -avz -e "ssh -i key.pem -o StrictHostKeyChecking=no" . $USER@$HOST:~/Travel-Agent-Chat-Bot
-
-          # SSH into EC2 and deploy
           ssh -i key.pem -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
             cd ~/Travel-Agent-Chat-Bot
-
-            # Save environment variables if provided
             if [ ! -z "$ENV_VARS" ]; then
               echo "$ENV_VARS" > .env
             fi
-
-            # Build Docker image
             docker build -t travel-agent-chatbot .
-
-            # Remove old container safely
             docker rm -f travel-agent-chatbot || true
-
-            # Run container with environment variables if available
             if [ -f .env ]; then
-              docker run -d --env-file .env -p 5000:5000 --name travel-agent-chatbot travel-agent-chatbot
+              docker run -d --env-file .env -p 7000:5000 --name travel-agent-chatbot travel-agent-chatbot
             else
-              docker run -d -p 5000:5000 --name travel-agent-chatbot travel-agent-chatbot
+              docker run -d -p 7000:5000 --name travel-agent-chatbot travel-agent-chatbot
             fi
-
-            # Optional health check
             sleep 5
             curl -f http://localhost:5000 || echo "Warning: App may not be running"
           EOF
-
-          # Remove local SSH key
           rm key.pem
