@@ -53,10 +53,14 @@ jobs:
           echo "$KEY" > key.pem
           chmod 600 key.pem
 
-          # SSH into EC2 and deploy Docker image from Docker Hub
-          ssh -i key.pem -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
+          ssh -i key.pem -o StrictHostKeyChecking=no $USER@$HOST << EOF
+            # Pull latest image from Docker Hub
+            docker pull ${{ secrets.DOCKER_USERNAME }}/travel-agent-chatbot:latest
+
+            # Remove old container if exists
             docker rm -f travel-agent-chatbot || true
 
+            # Save environment variables if provided
             if [ ! -z "$ENV_VARS" ]; then
               echo "$ENV_VARS" > .env
               docker run -d --env-file .env -p 5000:5000 -p 7000:7000 --name travel-agent-chatbot ${{ secrets.DOCKER_USERNAME }}/travel-agent-chatbot:latest
@@ -64,7 +68,9 @@ jobs:
               docker run -d -p 5000:5000 -p 7000:7000 --name travel-agent-chatbot ${{ secrets.DOCKER_USERNAME }}/travel-agent-chatbot:latest
             fi
 
-            sleep 5
+            # Wait and check health
+            sleep 10
+            echo "Checking apps..."
             curl -f http://localhost:5000 || echo "Warning: App on 5000 may not be running"
             curl -f http://localhost:7000 || echo "Warning: App on 7000 may not be running"
           EOF
